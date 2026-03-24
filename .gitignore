@@ -1,8 +1,60 @@
+# macOS
 .DS_Store
+
+# Editors
 *.swp
 *.swo
+*.tmp
+*.log
+
+# Obsidian
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/plugins/
 .obsidian/themes/
+.obsidian/cache/
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Temp
 /tmp/
+
+# Secrets (никогда не коммитить)
+scripts/.env
+scripts/_secrets/
+.env
+*.key
+*.pem
+
+# Media (слишком тяжёлые для git)
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.mp3
+*.wav
+*.m4a
+*.flac
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.dmg
+
+# Binaries
+*.exe
+*.dll
+*.bin
+
+# Python (если используешь скрипты)
+**/__pycache__/
+**/.venv/
+
+# Databases
+*.sqlite
+*.db
