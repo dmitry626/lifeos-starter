@@ -437,7 +437,19 @@ else
     warn "Добавь вручную: alias lifeos='cd \"$VAULT_DIR\" && claude'"
 fi
 
-# ---------- 6. Приветствие и запуск ----------
+# ---------- 6. Параллельно открыть MacWhisper в браузере ----------
+# MacWhisper — голосовой ввод, критический компонент LifeOS. Открываем
+# страницу загрузки параллельно с запуском Claude Code: пользователь
+# установит MacWhisper пока Claude проходит свой первый авторизационный
+# onboarding (авторизация в браузере + настройка терминала).
+# Отключить: LIFEOS_SKIP_MACWHISPER=1 перед запуском скрипта.
+if [ "$(uname)" = "Darwin" ] && [ -z "${LIFEOS_SKIP_MACWHISPER:-}" ] && command -v open >/dev/null 2>&1; then
+    if [ "$CLAUDE_OK" = "1" ]; then
+        (open "https://goodsnooze.gumroad.com/l/macwhisper" >/dev/null 2>&1 &) || true
+    fi
+fi
+
+# ---------- 7. Приветствие и запуск ----------
 print_welcome() {
     local mode="$1"   # "launch" или "install-claude"
     echo ""
@@ -450,11 +462,25 @@ print_welcome() {
     printf "\n"
 
     if [ "$mode" = "launch" ]; then
-        printf "  Запускаю Claude Code — дальше AI проведёт тебя\n"
-        printf "  через первичную настройку системы.\n"
+        if [ "$(uname)" = "Darwin" ] && [ -z "${LIFEOS_SKIP_MACWHISPER:-}" ]; then
+            printf "  В браузере открыл страницу ${BOLD}MacWhisper${NC} — это\n"
+            printf "  голосовой ввод, ключевой инструмент системы.\n"
+            printf "  Скачай и установи параллельно, пока Claude Code\n"
+            printf "  проходит авторизацию.\n"
+            printf "\n"
+        fi
+        printf "  Сейчас запущу Claude Code. Он:\n"
+        printf "   • попросит авторизоваться (откроется браузер)\n"
+        printf "   • настроит терминал (Enter везде)\n"
         printf "\n"
-        printf "  В следующие разы запускай систему одной командой:\n"
+        printf "  Когда увидишь пустой чат — впечатай одну фразу:\n"
         printf "\n"
+        printf "      ${BOLD}${GREEN}Привет, поехали!${NC}\n"
+        printf "\n"
+        printf "  Дальше AI проведёт тебя через интервью,\n"
+        printf "  настройку голосового ввода и первый проект.\n"
+        printf "\n"
+        printf "  В следующие разы запускай систему командой:\n"
         printf "      ${BOLD}${GREEN}lifeos${NC}\n"
     else
         printf "  ${YELLOW}Остался последний шаг — установить Claude Code:${NC}\n"
