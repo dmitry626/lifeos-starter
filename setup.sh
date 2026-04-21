@@ -46,6 +46,32 @@ log()  { printf "${GREEN}${BOLD}[LifeOS]${NC} %s\n" "$*"; }
 warn() { printf "${YELLOW}${BOLD}[LifeOS]${NC} %s\n" "$*"; }
 err()  { printf "${RED}${BOLD}[LifeOS]${NC} %s\n" "$*" >&2; }
 
+# ---------- Распаковка ZIP ----------
+# BSD unzip на macOS не поддерживает UTF-8 имена файлов — ломается на
+# кириллице. Используем нативные альтернативы, которые с UTF-8 работают.
+extract_zip() {
+    local zip_file="$1"
+    local dest_dir="$2"
+
+    # macOS: ditto (нативная утилита Apple, правильно обрабатывает UTF-8)
+    if command -v ditto >/dev/null 2>&1; then
+        ditto -xk "$zip_file" "$dest_dir" 2>/dev/null && return 0
+    fi
+
+    # Современный tar (libarchive) умеет zip из коробки
+    if command -v tar >/dev/null 2>&1; then
+        (cd "$dest_dir" && tar xf "$zip_file") 2>/dev/null && return 0
+    fi
+
+    # Последний шанс — unzip (на Linux обычно Info-ZIP с UTF-8)
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -q "$zip_file" -d "$dest_dir" && return 0
+    fi
+
+    err "Не удалось распаковать ZIP. Нет ditto/tar/unzip в PATH."
+    return 1
+}
+
 # ---------- Чтение stdin из /dev/tty (для curl | bash) ----------
 # Когда скрипт запущен через `curl | bash`, stdin занят под сам скрипт.
 # Для интерактивных вопросов читаем напрямую с терминала.
@@ -207,11 +233,7 @@ trap cleanup EXIT
 if [ -n "$LOCAL_SOURCE" ]; then
     log "Источник: локальный — $LOCAL_SOURCE"
     if [ -f "$LOCAL_SOURCE" ]; then
-        if ! command -v unzip >/dev/null 2>&1; then
-            err "unzip не установлен. Linux: sudo apt install unzip"
-            exit 1
-        fi
-        unzip -q "$LOCAL_SOURCE" -d "$TMP_DIR"
+        extract_zip "$LOCAL_SOURCE" "$TMP_DIR" || exit 1
     elif [ -d "$LOCAL_SOURCE" ]; then
         mkdir -p "$TMP_DIR/source"
         cp -R "$LOCAL_SOURCE/." "$TMP_DIR/source/"
@@ -229,11 +251,7 @@ else
         err "Проверь доступ в интернет и что репозиторий публичный."
         exit 1
     fi
-    if ! command -v unzip >/dev/null 2>&1; then
-        err "unzip не установлен."
-        exit 1
-    fi
-    unzip -q "$TMP_DIR/starter.zip" -d "$TMP_DIR"
+    extract_zip "$TMP_DIR/starter.zip" "$TMP_DIR" || exit 1
     rm -f "$TMP_DIR/starter.zip"
 fi
 
