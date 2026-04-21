@@ -284,20 +284,44 @@ if ($ProfileContent -match 'function\s+lifeos') {
     Write-Log "Для активации в текущей сессии: . `$PROFILE"
 }
 
-# ---------- 6. Запуск ----------
-Write-Host ""
-Write-Log "============================================="
-Write-Log "Установка LifeOS завершена"
-Write-Log "Vault: $VaultDir"
-Write-Log "============================================="
-Write-Host ""
+# ---------- 6. Приветствие и запуск ----------
+function Write-Welcome {
+    param([string]$Mode)
+    Write-Host ""
+    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  Добро пожаловать в LifeOS" -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Твоя система установлена:"
+    Write-Host "  $VaultDir"
+    Write-Host ""
+
+    if ($Mode -eq 'launch') {
+        Write-Host "  Запускаю Claude Code — дальше AI проведёт тебя"
+        Write-Host "  через первичную настройку системы."
+        Write-Host ""
+        Write-Host "  В следующие разы запускай систему одной командой:"
+        Write-Host ""
+        Write-Host "      lifeos" -ForegroundColor Green
+    } else {
+        Write-Host "  Остался последний шаг — установить Claude Code:" -ForegroundColor Yellow
+        Write-Host "  https://claude.ai" -ForegroundColor White
+        Write-Host ""
+        Write-Host "  После установки открой новое окно терминала"
+        Write-Host "  и запусти систему одной командой:"
+        Write-Host ""
+        Write-Host "      lifeos" -ForegroundColor Green
+    }
+
+    Write-Host ""
+    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host ""
+}
 
 if ($ClaudeOk) {
-    Write-Log "Запускаю Claude Code — дальше AI поведёт тебя сам."
-    Write-Host ""
+    Write-Welcome -Mode 'launch'
     Set-Location $VaultDir
     & $ClaudeBin
 } else {
-    Write-Log "После установки Claude Code запусти вручную:"
-    Write-Log "  cd `"$VaultDir`"; claude"
+    Write-Welcome -Mode 'install-claude'
 }

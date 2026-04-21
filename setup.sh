@@ -368,16 +368,29 @@ else
 fi
 
 # ---------- 5. Прописать алиас ----------
-SHELL_RC=""
-if [ -n "${ZSH_VERSION:-}" ]; then
-    SHELL_RC="$HOME/.zshrc"
-elif [ -n "${BASH_VERSION:-}" ]; then
-    SHELL_RC="$HOME/.bashrc"
-elif [ "${SHELL:-}" = "/bin/zsh" ] || [ "${SHELL:-}" = "/usr/bin/zsh" ] || [ -f "$HOME/.zshrc" ]; then
-    SHELL_RC="$HOME/.zshrc"
-elif [ -f "$HOME/.bashrc" ]; then
-    SHELL_RC="$HOME/.bashrc"
-fi
+# Определяем shell пользователя по $SHELL, а НЕ по ZSH_VERSION/BASH_VERSION
+# (эти переменные отражают shell самого скрипта, а не login shell).
+# curl | bash запускает bash, и BASH_VERSION будет установлен даже если
+# у пользователя zsh — поэтому раньше алиас ошибочно попадал в .bashrc.
+SHELL_NAME="$(basename "${SHELL:-/bin/zsh}")"
+case "$SHELL_NAME" in
+    zsh)
+        SHELL_RC="$HOME/.zshrc"
+        ;;
+    bash)
+        # macOS: login bash читает .bash_profile; Linux: .bashrc
+        if [ "$(uname)" = "Darwin" ]; then
+            SHELL_RC="$HOME/.bash_profile"
+        else
+            SHELL_RC="$HOME/.bashrc"
+        fi
+        ;;
+    *)
+        SHELL_RC="$HOME/.profile"
+        ;;
+esac
+# Создаём файл если его нет, чтобы не падать при grep/append
+[ ! -f "$SHELL_RC" ] && touch "$SHELL_RC"
 
 if [ -n "$SHELL_RC" ]; then
     # Умный алиас: если vault в iCloud-контейнере Obsidian И brctl доступен,
@@ -406,20 +419,44 @@ else
     warn "Добавь вручную: alias lifeos='cd \"$VAULT_DIR\" && claude'"
 fi
 
-# ---------- 6. Запуск ----------
-echo ""
-log "============================================="
-log "Установка LifeOS завершена"
-log "Vault: $VAULT_DIR"
-log "============================================="
-echo ""
+# ---------- 6. Приветствие и запуск ----------
+print_welcome() {
+    local mode="$1"   # "launch" или "install-claude"
+    echo ""
+    printf "${GREEN}${BOLD}══════════════════════════════════════════════════════${NC}\n"
+    printf "\n"
+    printf "  ${BOLD}Добро пожаловать в LifeOS${NC}\n"
+    printf "\n"
+    printf "  Твоя система установлена:\n"
+    printf "  ${VAULT_DIR}\n"
+    printf "\n"
+
+    if [ "$mode" = "launch" ]; then
+        printf "  Запускаю Claude Code — дальше AI проведёт тебя\n"
+        printf "  через первичную настройку системы.\n"
+        printf "\n"
+        printf "  В следующие разы запускай систему одной командой:\n"
+        printf "\n"
+        printf "      ${BOLD}${GREEN}lifeos${NC}\n"
+    else
+        printf "  ${YELLOW}Остался последний шаг — установить Claude Code:${NC}\n"
+        printf "  ${BOLD}https://claude.ai${NC}\n"
+        printf "\n"
+        printf "  После установки открой ${BOLD}новое окно терминала${NC}\n"
+        printf "  и запусти систему одной командой:\n"
+        printf "\n"
+        printf "      ${BOLD}${GREEN}lifeos${NC}\n"
+    fi
+
+    printf "\n"
+    printf "${GREEN}${BOLD}══════════════════════════════════════════════════════${NC}\n"
+    echo ""
+}
 
 if [ "$CLAUDE_OK" = "1" ]; then
-    log "Запускаю Claude Code — дальше AI поведёт тебя сам."
-    echo ""
+    print_welcome "launch"
     cd "$VAULT_DIR"
     exec "$CLAUDE_BIN"
 else
-    log "После установки Claude Code запусти вручную:"
-    log "  cd \"$VAULT_DIR\" && claude"
+    print_welcome "install-claude"
 fi
