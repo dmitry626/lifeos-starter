@@ -74,27 +74,17 @@ if [ ! -f "$OBSIDIAN_CONFIG" ] && [ -f "$HOME/.config/obsidian/obsidian.json" ];
 fi
 
 extract_vaults_from_config() {
-    # Печатает пути ко всем vault из obsidian.json, по одному на строку
+    # Печатает пути ко всем vault из obsidian.json, по одному на строку.
+    # Используем чистый grep+sed (нативно в macOS/Linux, без зависимости
+    # от python/jq — чтобы не триггерить xcode-select на чистом Mac).
     if [ ! -f "$OBSIDIAN_CONFIG" ]; then
         return 0
     fi
-    # Используем python3 (есть на macOS по умолчанию)
-    if command -v python3 >/dev/null 2>&1; then
-        python3 -c "
-import json, sys
-try:
-    with open('$OBSIDIAN_CONFIG') as f:
-        data = json.load(f)
-    vaults = data.get('vaults', {})
-    for v in vaults.values():
-        path = v.get('path')
-        if path:
-            print(path)
-except Exception as e:
-    sys.stderr.write(f'Config read error: {e}\n')
-    sys.exit(0)
-"
-    fi
+    # Формат obsidian.json: {"vaults": {"hash": {"path": "/путь", ...}, ...}}
+    # Вытаскиваем все значения поля "path" (пути в macOS могут содержать
+    # пробелы, но не двойные кавычки — поэтому "[^"]*" корректен).
+    grep -Eo '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$OBSIDIAN_CONFIG" 2>/dev/null \
+        | sed -E 's/.*"path"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/'
 }
 
 choose_vault_interactive() {
