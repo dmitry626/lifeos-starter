@@ -326,14 +326,45 @@ cp -R "$EXTRACTED/." "$VAULT_DIR/"
     echo "branch: $BRANCH"
 } > "$MARKER"
 
-# ---------- 4. Проверить claude ----------
-CLAUDE_OK=1
-if ! command -v claude >/dev/null 2>&1; then
+# ---------- 4. Найти claude ----------
+# Установщик Claude Code кладёт бинарник в ~/.local/bin/claude и
+# добавляет PATH в ~/.zshrc. Но текущая bash-сессия (особенно curl | bash)
+# не видит изменений .zshrc — нужно искать по известным местам явно.
+find_claude() {
+    if command -v claude >/dev/null 2>&1; then
+        command -v claude
+        return 0
+    fi
+    for p in \
+        "$HOME/.local/bin/claude" \
+        "$HOME/.claude/local/claude" \
+        "/usr/local/bin/claude" \
+        "/opt/homebrew/bin/claude"
+    do
+        if [ -x "$p" ]; then
+            printf '%s' "$p"
+            return 0
+        fi
+    done
+    return 1
+}
+
+CLAUDE_BIN="$(find_claude || true)"
+CLAUDE_OK=0
+if [ -n "$CLAUDE_BIN" ]; then
+    CLAUDE_OK=1
+    log "Найден claude: $CLAUDE_BIN"
+    # Добавим его папку в PATH, чтобы exec нашёл
+    case ":$PATH:" in
+        *":$(dirname "$CLAUDE_BIN"):"*) ;;
+        *) export PATH="$(dirname "$CLAUDE_BIN"):$PATH" ;;
+    esac
+else
     warn ""
-    warn "Команда 'claude' не найдена в PATH."
+    warn "Команда 'claude' не найдена ни в PATH, ни в стандартных местах"
+    warn "(~/.local/bin, ~/.claude/local, /usr/local/bin, /opt/homebrew/bin)."
     warn "Установи Claude Code: https://claude.ai"
     warn ""
-    CLAUDE_OK=0
 fi
 
 # ---------- 5. Прописать алиас ----------
@@ -378,7 +409,7 @@ if [ "$CLAUDE_OK" = "1" ]; then
     log "Запускаю Claude Code — дальше AI поведёт тебя сам."
     echo ""
     cd "$VAULT_DIR"
-    exec claude
+    exec "$CLAUDE_BIN"
 else
     log "После установки Claude Code запусти вручную:"
     log "  cd \"$VAULT_DIR\" && claude"

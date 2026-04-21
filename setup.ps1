@@ -229,14 +229,37 @@ finally {
     if (Test-Path $TmpDir) { Remove-Item $TmpDir -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-# ---------- 4. Проверить claude ----------
-$ClaudeOk = $true
-if (-not (Get-Command 'claude' -ErrorAction SilentlyContinue)) {
+# ---------- 4. Найти claude ----------
+# Установщик Claude Code добавляет PATH в профиль, но текущая сессия
+# может этого не видеть. Ищем в стандартных местах явно.
+function Find-Claude {
+    $cmd = Get-Command 'claude' -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    $candidates = @(
+        "$env:USERPROFILE\.local\bin\claude.exe",
+        "$env:USERPROFILE\.claude\local\claude.exe",
+        "$env:LOCALAPPDATA\Programs\claude\claude.exe"
+    )
+    foreach ($p in $candidates) {
+        if (Test-Path $p -PathType Leaf) { return $p }
+    }
+    return $null
+}
+
+$ClaudeBin = Find-Claude
+$ClaudeOk = $false
+if ($ClaudeBin) {
+    $ClaudeOk = $true
+    Write-Log "Найден claude: $ClaudeBin"
+    $claudeDir = Split-Path $ClaudeBin -Parent
+    if ($env:PATH -notlike "*$claudeDir*") {
+        $env:PATH = "$claudeDir;$env:PATH"
+    }
+} else {
     Write-Warn ""
-    Write-Warn "Команда 'claude' не найдена в PATH."
+    Write-Warn "Команда 'claude' не найдена ни в PATH, ни в стандартных местах."
     Write-Warn "Установи Claude Code: https://claude.ai"
     Write-Warn ""
-    $ClaudeOk = $false
 }
 
 # ---------- 5. Функция lifeos в PowerShell-профиль ----------
@@ -273,7 +296,7 @@ if ($ClaudeOk) {
     Write-Log "Запускаю Claude Code — дальше AI поведёт тебя сам."
     Write-Host ""
     Set-Location $VaultDir
-    & claude
+    & $ClaudeBin
 } else {
     Write-Log "После установки Claude Code запусти вручную:"
     Write-Log "  cd `"$VaultDir`"; claude"
