@@ -392,6 +392,24 @@ esac
 # Создаём файл если его нет, чтобы не падать при grep/append
 [ ! -f "$SHELL_RC" ] && touch "$SHELL_RC"
 
+# ---------- 5a. Добавить ~/.local/bin в PATH ----------
+# Claude Code installer ставит бинарник в ~/.local/bin, но НЕ прописывает
+# его автоматически в ~/.zshrc — показывает предупреждение, которое 90%
+# новичков пропускают. В результате `claude` не работает в новых окнах
+# терминала. Прописываем сами, идемпотентно.
+if [ -d "$HOME/.local/bin" ] || [ -x "$HOME/.local/bin/claude" ]; then
+    if ! grep -Fq '.local/bin' "$SHELL_RC" 2>/dev/null; then
+        {
+            echo ""
+            echo "# Claude Code installer puts binary here — add to PATH for new sessions"
+            echo 'export PATH="$HOME/.local/bin:$PATH"'
+        } >> "$SHELL_RC"
+        log "Добавлено ~/.local/bin в PATH через $SHELL_RC"
+    else
+        log "~/.local/bin уже в PATH через $SHELL_RC — не дублирую."
+    fi
+fi
+
 if [ -n "$SHELL_RC" ]; then
     # Умный алиас: если vault в iCloud-контейнере Obsidian И brctl доступен,
     # делаем предварительный download всего контейнера (файлы в iCloud могут
