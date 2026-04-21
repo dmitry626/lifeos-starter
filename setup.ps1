@@ -163,11 +163,67 @@ try {
     }
     $ExtractedPath = $Extracted.FullName
 
-    # ---------- 3. Скопировать ----------
+    # ---------- 3a. Бэкап при повторной установке ----------
+    $Marker = Join-Path $VaultDir '.lifeos-installed'
+    $IsReinstall = $false
+
+    if (Test-Path $Marker) {
+        $IsReinstall = $true
+        $BackupDir = Join-Path $VaultDir (".lifeos-backup-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+        Write-Log ""
+        Write-Log "Обнаружена предыдущая установка LifeOS в этом vault."
+        Write-Log "Marker: $Marker"
+        Write-Log "Делаю бэкап файлов, которые могут быть перезаписаны, в:"
+        Write-Log "  $BackupDir"
+
+        New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
+
+        $BackupCount = 0
+        Get-ChildItem -Path $ExtractedPath -Recurse -File -Force | ForEach-Object {
+            $rel = $_.FullName.Substring($ExtractedPath.Length).TrimStart('\', '/')
+            $src = Join-Path $VaultDir $rel
+            if (Test-Path $src -PathType Leaf) {
+                $dest = Join-Path $BackupDir $rel
+                $destDir = Split-Path $dest -Parent
+                if (-not (Test-Path $destDir)) {
+                    New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                }
+                Copy-Item -Path $src -Destination $dest -Force
+                $BackupCount++
+            }
+        }
+
+        if ($BackupCount -gt 0) {
+            Write-Log "Забэкаплено файлов: $BackupCount"
+            Write-Log "Если после обновления что-то нужно вернуть — файлы в $BackupDir"
+        } else {
+            Remove-Item $BackupDir -Force -ErrorAction SilentlyContinue
+            Write-Log "Перезаписываемых файлов не обнаружено, бэкап не нужен."
+        }
+        Write-Log ""
+    }
+
+    # ---------- 3b. Скопировать ----------
     Write-Log "Копирую файлы в vault (.obsidian/ не затрагивается)..."
     Get-ChildItem -Path $ExtractedPath -Force | ForEach-Object {
         Copy-Item -Path $_.FullName -Destination $VaultDir -Recurse -Force
     }
+
+    # ---------- 3c. Записать marker ----------
+    $InstalledLine = if ($IsReinstall) {
+        $existing = Get-Content $Marker -ErrorAction SilentlyContinue | Where-Object { $_ -match '^installed:' } | Select-Object -First 1
+        if ($existing) { $existing } else { "installed: unknown" }
+    } else {
+        "installed: $((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+    }
+
+    @(
+        "LifeOS Starter Pack"
+        $InstalledLine
+        "last_run: $((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))"
+        "repo: $RepoUrl"
+        "branch: $Branch"
+    ) | Set-Content -Path $Marker
 }
 finally {
     if (Test-Path $TmpDir) { Remove-Item $TmpDir -Recurse -Force -ErrorAction SilentlyContinue }

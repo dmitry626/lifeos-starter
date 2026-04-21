@@ -250,9 +250,63 @@ if [ -z "$EXTRACTED" ]; then
     exit 1
 fi
 
-# ---------- 3. Скопировать в vault ----------
+# ---------- 3a. Бэкап при повторной установке ----------
+MARKER="$VAULT_DIR/.lifeos-installed"
+IS_REINSTALL=0
+
+if [ -f "$MARKER" ]; then
+    IS_REINSTALL=1
+    BACKUP_DIR="$VAULT_DIR/.lifeos-backup-$(date +%Y%m%d-%H%M%S)"
+    log ""
+    log "Обнаружена предыдущая установка LifeOS в этом vault."
+    log "Marker: $MARKER"
+    log "Делаю бэкап файлов, которые могут быть перезаписаны, в:"
+    log "  $BACKUP_DIR"
+
+    mkdir -p "$BACKUP_DIR"
+
+    # Проходим по всем файлам в распакованном starter pack
+    # и бэкапим те, что уже существуют в vault (значит будут перезаписаны)
+    BACKUP_COUNT=0
+    while IFS= read -r rel_path; do
+        [ -z "$rel_path" ] && continue
+        src="$VAULT_DIR/$rel_path"
+        if [ -f "$src" ]; then
+            dest="$BACKUP_DIR/$rel_path"
+            mkdir -p "$(dirname "$dest")"
+            cp "$src" "$dest"
+            BACKUP_COUNT=$((BACKUP_COUNT + 1))
+        fi
+    done < <(cd "$EXTRACTED" && find . -type f | sed 's|^\./||')
+
+    if [ "$BACKUP_COUNT" -gt 0 ]; then
+        log "Забэкаплено файлов: $BACKUP_COUNT"
+        log "Если после обновления что-то нужно вернуть — файлы в $BACKUP_DIR"
+    else
+        # Бэкап пустой — удаляем пустую папку
+        rmdir "$BACKUP_DIR" 2>/dev/null || true
+        log "Перезаписываемых файлов не обнаружено, бэкап не нужен."
+    fi
+    log ""
+fi
+
+# ---------- 3b. Скопировать в vault ----------
 log "Копирую файлы в vault (.obsidian/ не затрагивается)..."
 cp -R "$EXTRACTED/." "$VAULT_DIR/"
+
+# ---------- 3c. Записать marker ----------
+{
+    echo "LifeOS Starter Pack"
+    if [ "$IS_REINSTALL" = "0" ]; then
+        echo "installed: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    else
+        # Сохраняем оригинальную дату установки, добавляем дату обновления
+        grep "^installed:" "$MARKER" 2>/dev/null || echo "installed: unknown"
+    fi
+    echo "last_run: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    echo "repo: $REPO_URL"
+    echo "branch: $BRANCH"
+} > "$MARKER"
 
 # ---------- 4. Проверить claude ----------
 CLAUDE_OK=1
