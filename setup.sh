@@ -380,7 +380,16 @@ elif [ -f "$HOME/.bashrc" ]; then
 fi
 
 if [ -n "$SHELL_RC" ]; then
-    ALIAS_LINE="alias lifeos='cd \"$VAULT_DIR\" && claude'"
+    # Умный алиас: если vault в iCloud-контейнере Obsidian И brctl доступен,
+    # делаем предварительный download всего контейнера (файлы в iCloud могут
+    # быть placeholder'ами — Claude при чтении натолкнётся на не-скачанные).
+    ICLOUD_ROOT="$HOME/Library/Mobile Documents/iCloud~md~obsidian"
+    if [[ "$VAULT_DIR" == "$ICLOUD_ROOT/"* ]] && command -v brctl >/dev/null 2>&1; then
+        ALIAS_LINE="alias lifeos='brctl download \"$ICLOUD_ROOT/\" & cd \"$VAULT_DIR\" && claude'"
+    else
+        ALIAS_LINE="alias lifeos='cd \"$VAULT_DIR\" && claude'"
+    fi
+
     if [ -f "$SHELL_RC" ] && grep -Fq "alias lifeos=" "$SHELL_RC" 2>/dev/null; then
         log "Алиас 'lifeos' уже есть в $SHELL_RC — не дублирую."
     else
