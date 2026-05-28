@@ -1,0 +1,14 @@
+{
+  "name": "lifeos",
+  "owner": {
+    "name": "Dmitry Yuzepchuk",
+    "email": "dmitry@yz.life"
+  },
+  "plugins": [
+    {
+      "name": "session-log",
+      "source": "./plugins/session-log",
+      "description": "Логирование AI-сессий: журнал работы + опциональные тайм-блоки в календарь. В комплекте хук UserPromptSubmit и скрипты анализа — ставится одной командой."
+    }
+  ]
+}
