@@ -267,6 +267,21 @@ def main(argv: list[str]) -> int:
         print(f"parallel_prompts={parallel_prompts}")
         print(f"parallel_ids={','.join(parallel_ids)}")
     print(f"logfile={logfile}")
+
+    # --- Детерминированные поля для записи (считаются здесь, без round-trip к модели) ---
+    from datetime import timedelta
+    now = datetime.now().astimezone()
+    iso_week = now.strftime("%G-W%V")              # текущая ISO-неделя → имя файла журнала
+    monday = now.date() - timedelta(days=now.weekday())
+    sunday = monday + timedelta(days=6)
+    start_week = first.dt.strftime("%G-W%V")       # ISO-неделя начала сессии (edge-case смены недели)
+    host = os.uname().nodename.split(".")[0]       # короткий hostname (как hostname -s)
+    print(f"now={now.strftime('%Y-%m-%d %H:%M %z')}")
+    print(f"iso_week={iso_week}")
+    print(f"week_file={iso_week}.md")
+    print(f"week_range={monday.isoformat()} (Пн) — {sunday.isoformat()} (Вс)")
+    print(f"start_week={start_week}")
+    print(f"host={host}")
     return 0
 
 
