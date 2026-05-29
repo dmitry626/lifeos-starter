@@ -73,7 +73,9 @@ description: Запиши итоги сессии в журнал ~/.lifeos/jour
 
 Если задан env `SESSION_LOG_CALENDAR_ID` — после журнала зафиксировать **фактические блоки работы** в Google-календарь (тайм-блокинг). **Если переменная пуста — пропустить весь блок, журнал самодостаточен.**
 
-Команда gws — из env `SESSION_LOG_GWS` (дефолт `gws`). Факт-блок: `summary` начинается с `✓`, `colorId: "2"`, `extendedProperties.private` несёт `sessionId`+`block` (идемпотентность).
+Команда gws — из env `SESSION_LOG_GWS` (дефолт `gws`). Факт-блок: `summary` начинается с `✓`, `colorId: "2"`, `extendedProperties.private` несёт `sessionId`+`block`+`context` (идемпотентность + фильтрация по объекту работы).
+
+**Объект работы (context).** Каждый блок привязан к объекту, над которым шла работа: проект/продукт/область/док-путь — любой элемент твоей системы. Claude знает его из сессии, пишет в строку **Контекст:** журнала и в `extendedProperties.private.context` события. Это ключ группировки при анализе многих сессий (время по проекту/объекту).
 
 ### Алгоритм блоков (ядро)
 
@@ -102,7 +104,7 @@ description: Запиши итоги сессии в журнал ~/.lifeos/jour
    ```bash
    "$SESSION_LOG_GWS" calendar events insert \
      --params '{"calendarId":"'"$SESSION_LOG_CALENDAR_ID"'"}' \
-     --json '{"summary":"✓ {название}","start":{"dateTime":"YYYY-MM-DDTHH:MM:00<offset>","timeZone":"<TZ>"},"end":{"dateTime":"YYYY-MM-DDTHH:MM:00<offset>","timeZone":"<TZ>"},"description":"{контекст}\n{что сделано}","colorId":"2","extendedProperties":{"private":{"source":"session-log","kind":"fact","sessionId":"<SESSION_ID>","block":"N"}}}'
+     --json '{"summary":"✓ {название}","start":{"dateTime":"YYYY-MM-DDTHH:MM:00<offset>","timeZone":"<TZ>"},"end":{"dateTime":"YYYY-MM-DDTHH:MM:00<offset>","timeZone":"<TZ>"},"description":"{контекст}\n{что сделано}","colorId":"2","extendedProperties":{"private":{"source":"session-log","kind":"fact","sessionId":"<SESSION_ID>","block":"N","context":"<объект: проект/продукт/область>"}}}'
    ```
    `<offset>`/`<TZ>` — текущего системного TZ. `end` = `start` + длительность.
 
