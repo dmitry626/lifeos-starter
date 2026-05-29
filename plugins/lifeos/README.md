@@ -1,10 +1,10 @@
-# session-log — плагин LifeOS
+# lifeos — плагин generic-навыков LifeOS
 
-Логирует итоги работы с Claude Code: журнал сессий + (опционально) фактические тайм-блоки в Google Calendar. Всё хранится в `~/.lifeos/` и **не привязано к проекту** — плагин ставится в User scope и работает в любой папке.
+Контейнер переносимых навыков LifeOS. Сейчас содержит `/lifeos:session-log` — логирование итогов работы с Claude Code: журнал сессий + (опционально) фактические тайм-блоки в Google Calendar. Логи хранятся в `~/.lifeos/` и **не привязаны к проекту** — плагин ставится в User scope и работает в любой папке.
 
 ## Что внутри
 
-- `commands/session-log.md` — навык `/session-log`.
+- `commands/session-log.md` — навык `/lifeos:session-log`.
 - `hooks/hooks.json` — хук `UserPromptSubmit`, пишет таймстамп каждого промпта в `~/.lifeos/logs/claude-session-{id}.log` (нужно для расчёта блоков работы).
 - `scripts/` — `session-tracker.sh` (хук), `session-analyze.sh` + `session_analyze.py` (метрики), `session_log_append.py` (атомарная запись журнала).
 
@@ -12,7 +12,7 @@
 
 ```
 /plugin marketplace add git@github.com:dmitry626/lifeos-starter.git
-/plugin install session-log@lifeos
+/plugin install lifeos@lifeos
 /reload-plugins
 ```
 

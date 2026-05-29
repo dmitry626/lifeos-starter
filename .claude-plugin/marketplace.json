@@ -6,9 +6,9 @@
   },
   "plugins": [
     {
-      "name": "session-log",
-      "source": "./plugins/session-log",
-      "description": "Логирование AI-сессий: журнал работы + опциональные тайм-блоки в календарь. В комплекте хук UserPromptSubmit и скрипты анализа — ставится одной командой."
+      "name": "lifeos",
+      "source": "./plugins/lifeos",
+      "description": "Generic-навыки LifeOS. Сейчас: /lifeos:session-log — логирование сессий в журнал + опциональные тайм-блоки в календарь (с хуком и скриптами в комплекте)."
     }
   ]
 }
