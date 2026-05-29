@@ -1,6 +1,6 @@
 {
   "name": "lifeos",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Generic-навыки LifeOS для Claude Code. Сейчас содержит /lifeos:session-log — логирование итогов работы в журнал (~/.lifeos/journal или vault) + опциональные тайм-блоки в Google Calendar; хук UserPromptSubmit пишет таймстампы промптов, скрипты сводят их в журнал и блоки.",
   "author": {
     "name": "LifeOS"
