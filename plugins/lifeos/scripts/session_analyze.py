@@ -282,6 +282,35 @@ def main(argv: list[str]) -> int:
     print(f"week_range={monday.isoformat()} (Пн) — {sunday.isoformat()} (Вс)")
     print(f"start_week={start_week}")
     print(f"host={host}")
+
+    # --- Блоки работы для тайм-блокинга (детерминированно: паузы >30мин + граница суток + округление + TZ) ---
+    local_tz = now.tzinfo
+    GAP = 30 * 60
+    blocks = []
+    grp = []
+
+    def _emit(g):
+        first, last = g[0], g[-1]
+        st = first.dt.astimezone(local_tz).replace(second=0, microsecond=0)
+        st = st.replace(minute=(st.minute // 15) * 15)          # старт вниз до 15 мин
+        dur = int((last.epoch - first.epoch) // 60) + 5         # block wall clock + буфер
+        dur = max(15, ((dur + 14) // 15) * 15)                  # вверх до 15 мин, минимум 15
+        en = st + timedelta(minutes=dur)
+        blocks.append((st, en, dur))
+
+    for t in sorted(current, key=lambda x: x.epoch):
+        if grp:
+            gap = t.epoch - grp[-1].epoch
+            same_day = t.dt.astimezone(local_tz).date() == grp[-1].dt.astimezone(local_tz).date()
+            if gap > GAP or not same_day:                       # разрыв блока: пауза >30мин ИЛИ новый день
+                _emit(grp); grp = []
+        grp.append(t)
+    if grp:
+        _emit(grp)
+
+    print(f"block_count={len(blocks)}")
+    for i, (st, en, dur) in enumerate(blocks, 1):
+        print(f"block={i} start={st.isoformat()} end={en.isoformat()} duration={dur} day={st.date().isoformat()}")
     return 0
 
 
