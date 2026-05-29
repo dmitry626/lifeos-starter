@@ -8,7 +8,11 @@
 Аргумент:
     - абсолютный путь к claude-session-*.log → анализируется этот файл;
     - session-id (UUID без префиксов) → резолвится в logs_dir/claude-session-<id>.log;
-    - без аргумента → берётся самый свежий лог в logs_dir по mtime.
+    - без аргумента → резолв по приоритету (см. pick_logfile):
+        (a) явный аргумент,
+        (b) pointer текущей вкладки current-session-<TERM_SESSION_ID>,
+        (c) env CLAUDE_CODE_SESSION_ID,
+        (d) самый свежий лог по mtime (последний резерв).
 
 Logs directory резолвится тем же способом, что hook session-tracker.sh:
     1) ENV CLAUDE_PROJECT_DIR (стандарт Claude Code) → <root>/Resources/00 Журнал AI/logs
@@ -37,6 +41,13 @@ session-analyze.sh (bash-версия, 2026-03). Выход разобран н�
         из /tmp/. Теперь оба используют CLAUDE_PROJECT_DIR + fallback на
         Path(__file__).parent.parent. Добавлена резолюция session-id (UUID)
         в путь файла, чтобы вызов с явным id работал.
+    2026-05-29: исправлен mis-attribution при параллельных вкладках.
+        Раньше вызов без аргумента брал самый свежий лог по mtime среди ВСЕХ
+        сессий → при параллельных Claude Code (ферма + основная) выбирал чужую
+        сессию, и работа одной сессии попадала в журнал/календарь другой.
+        Теперь приоритет резолва: (a) аргумент, (b) pointer вкладки
+        current-session-<TERM_SESSION_ID> (хук пишет live id, переживает
+        компакцию), (c) env CLAUDE_CODE_SESSION_ID, (d) mtime (резерв).
 """
 
 from __future__ import annotations
@@ -147,18 +158,66 @@ def logs_dir() -> Path:
     return Path(home) / "logs"
 
 
+def _logfile_for_id(session_id: str) -> str | None:
+    """Путь к логу по session-id, если файл существует."""
+    if not session_id or not SESSION_ID_RE.match(session_id):
+        return None
+    candidate = logs_dir() / f"claude-session-{session_id}.log"
+    return str(candidate) if candidate.is_file() else None
+
+
+def _pointer_session_id() -> str | None:
+    """Live session_id из pointer'а текущей вкладки терминала.
+
+    Хук session-tracker.sh при каждом промпте пишет
+    logs_dir()/current-session-<TERM_SESSION_ID> = live session_id. Ключ —
+    по вкладке терминала: стабилен, переживает компакцию (после которой
+    session_id меняется), не перезаписывается другими параллельными вкладками.
+    Это надёжный якорь против mis-attribution «самый свежий по mtime».
+    """
+    term = os.environ.get("TERM_SESSION_ID")
+    if not term:
+        return None
+    ptr = logs_dir() / f"current-session-{term}"
+    try:
+        sid = ptr.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return sid or None
+
+
 def pick_logfile(arg: str | None) -> str | None:
+    # (a) Явный аргумент — высший приоритет.
     if arg:
         # Явный путь к существующему файлу
         if os.path.isfile(arg):
             return arg
         # Session-id (UUID) → резолвится в путь
-        if SESSION_ID_RE.match(arg):
-            candidate = logs_dir() / f"claude-session-{arg}.log"
-            if candidate.is_file():
-                return str(candidate)
+        resolved = _logfile_for_id(arg)
+        if resolved:
+            return resolved
         return None
-    # Без аргумента — самый свежий лог в logs_dir по mtime
+
+    # (b) Pointer вкладки терминала (current-session-<TERM_SESSION_ID>).
+    #     Самый надёжный live-якорь: переживает компакцию, не путается с
+    #     параллельными вкладками. Используем только если лог реально существует.
+    ptr_id = _pointer_session_id()
+    if ptr_id:
+        resolved = _logfile_for_id(ptr_id)
+        if resolved:
+            return resolved
+
+    # (c) ENV CLAUDE_CODE_SESSION_ID — может протухнуть после компакции, но
+    #     лучше mtime-угадывания. Только если лог существует.
+    env_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if env_id:
+        resolved = _logfile_for_id(env_id)
+        if resolved:
+            return resolved
+
+    # (d) Последний резерв — самый свежий лог в logs_dir по mtime.
+    #     Ненадёжно при параллельных сессиях; срабатывает лишь когда нет ни
+    #     pointer'а, ни валидного env (headless без TERM_SESSION_ID и т.п.).
     candidates = sorted(
         logs_dir().glob("claude-session-*.log"),
         key=lambda p: p.stat().st_mtime,
