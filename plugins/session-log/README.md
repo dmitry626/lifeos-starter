@@ -24,7 +24,8 @@
 
 | Переменная | Дефолт | Назначение |
 |---|---|---|
-| `LIFEOS_HOME` | `~/.lifeos` | База для логов и журнала. Менять обычно не нужно. |
+| `LIFEOS_HOME` | `~/.lifeos` | База для логов (`logs/`). Логи технические, project-independent. |
+| `SESSION_LOG_JOURNAL_DIR` | `~/.lifeos/journal` | Куда писать журнал `YYYY-WNN.md`. Кто держит журнал в Obsidian-vault — указывает vault-путь (журнал виден в Obsidian и связан с заметками). |
 | `SESSION_LOG_CALENDAR_ID` | (пусто) | Google Calendar id для тайм-блоков. **Пусто → календарь пропускается, пишется только журнал.** |
 | `SESSION_LOG_GWS` | `gws` | Команда gws CLI (например `gws-yz`, если несколько аккаунтов). |
 

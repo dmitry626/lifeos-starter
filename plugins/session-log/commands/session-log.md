@@ -47,13 +47,13 @@ description: Запиши итоги сессии в журнал ~/.lifeos/jour
 2. Вызови:
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/session_log_append.py" \
-     --week-file "$HOME/.lifeos/journal/YYYY-WNN.md" \
+     --week-file "${SESSION_LOG_JOURNAL_DIR:-$HOME/.lifeos/journal}/YYYY-WNN.md" \
      --session-id <SESSION_ID> \
      --payload-file "$HOME/.lifeos/logs/session-log-payload-<SESSION_ID>.md" \
      --mode auto \
      --week-range "YYYY-MM-DD (Пн) — YYYY-MM-DD (Вс)"
    ```
-   (Если `LIFEOS_HOME` задан — подставь его вместо `$HOME/.lifeos`.)
+   **Путь журнала** — env `SESSION_LOG_JOURNAL_DIR` (дефолт `~/.lifeos/journal`). Кто держит журнал в Obsidian-vault — указывает сюда vault-путь (тогда журнал виден в Obsidian и связан с заметками). Логи всегда в `~/.lifeos/logs` (технические, project-independent).
 3. Скрипт берёт `flock` на `~/.lifeos/logs/session-log.lock`, ищет блок по `session-id`, делает insert/update, атомарно переписывает файл. Вывод: `mode=insert|update`. При `error:` — разобраться.
 4. `--week-range` нужен только при создании нового weekly-файла (первая запись недели).
 
