@@ -1,5 +1,6 @@
 {
   "name": "lifeos",
+  "description": "Generic-навыки LifeOS для Claude Code: переносимая инфраструктура личной операционной системы.",
   "owner": {
     "name": "Dmitry Yuzepchuk",
     "email": "dmitry@yz.life"
