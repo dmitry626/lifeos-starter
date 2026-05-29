@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Логирование итогов работы с Claude Code: журнал сессий (~/.lifeos/journal) + опциональные тайм-блоки в Google Calendar. Хук UserPromptSubmit пишет таймстампы промптов, навык /session-log сводит их в журнал и блоки.",
   "author": {
-    "name": "Dmitry Yuzepchuk",
-    "email": "dmitry@yz.life"
+    "name": "LifeOS"
   }
 }

@@ -109,6 +109,6 @@ LifeOS — не программа, а **стартовый набор и гид
 
 ## Лицензия
 
-LifeOS Starter Pack (c) 2026 Dmitry Yuzepchuk.
+LifeOS Starter Pack (c) 2026 LifeOS.
 
 Распространяется по лицензии [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Можно использовать, адаптировать и распространять — при условии указания авторства и сохранения той же лицензии для производных работ.
